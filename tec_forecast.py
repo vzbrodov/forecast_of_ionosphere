@@ -708,36 +708,45 @@ class TECForecaster:
         ax = plt.axes(projection=ccrs.PlateCarree())
         
         # Добавляем географические элементы
-        ax.add_feature(cfeature.COASTLINE, linewidth=0.5)
-        ax.add_feature(cfeature.BORDERS, linewidth=0.3)
-        ax.add_feature(cfeature.OCEAN, alpha=0.3, color='lightblue')
-        ax.add_feature(cfeature.LAND, alpha=0.1, color='lightgray')
+        ax.add_feature(cfeature.COASTLINE, linewidth=1)
+        ax.add_feature(cfeature.BORDERS, linewidth=0.5)
+        ax.add_feature(cfeature.OCEAN, alpha=0.4, color='lightblue')
+        ax.add_feature(cfeature.LAND, alpha=0.2, color='lightgray')
         
         # Цветовая схема
         from matplotlib.colors import LinearSegmentedColormap
+        import matplotlib.colors as mcolors
         colors = ['#000080', '#0000FF', '#00FFFF', '#FFFF00', '#FF8000', '#FF0000', '#800000']
-        n_bins = 100
+        cmap = mcolors.LinearSegmentedColormap.from_list('custom_tec', colors, N=256)
+        n_bins = 365
         cmap_custom = LinearSegmentedColormap.from_list('custom', colors, N=n_bins)
         
         # Отображаем данные
         vmin = np.percentile(tect_values, 5)
         vmax = np.percentile(tect_values, 95)
+
+        vmin, vmax = -7, 120
+        levels = np.linspace(vmin, vmax, 80)
         
         im = ax.contourf(lon_grid, lat_grid, tect_values, 
-                        levels=50, cmap=cmap_custom, 
+                        levels=levels, cmap=cmap_custom, #levels=50
                         transform=ccrs.PlateCarree(),
                         vmin=vmin, vmax=vmax)
         
         # Цветовая шкала
         cbar = plt.colorbar(im, ax=ax, orientation='horizontal', 
                            pad=0.05, shrink=0.8, aspect=30)
-        cbar.set_label('TEC (TECU)', fontsize=14, fontweight='bold')
+        cbar.set_label('TEC (TECU)', fontsize=16, fontweight='bold')
+        cbar.ax.tick_params(labelsize=15)
         
         # Настройка карты
         ax.set_title(title, fontsize=18, fontweight='bold', pad=20)
         ax.set_global()
-        ax.gridlines(draw_labels=True, dms=True, x_inline=False, y_inline=False,
-                    alpha=0.5, linestyle='--')
+        gl = ax.gridlines(draw_labels=True, dms=True, x_inline=False, y_inline=False,
+                     alpha=0.5, linestyle='--')
+    
+        gl.xlabel_style = {'size': 15, 'weight': 'bold'}  # Добавлено: размер подписей долготы
+        gl.ylabel_style = {'size': 15, 'weight': 'bold'} 
         
         plt.tight_layout()
         
@@ -753,7 +762,7 @@ def main():
     
     # Создаем прогнозировщик
     forecaster = TECForecaster('/home/fanat/work/forecast_of_ionosphere/1999-2022rawdata', 
-                              ar_order=150)
+                              ar_order=200)
     
     # Загружаем данные (используем 25% для быстрого тестирования)
     forecaster.load_data(use_percentage=100.0)
@@ -765,7 +774,7 @@ def main():
     
     fig1, ax1 = forecaster.create_tec_map(
         last_coefficients, 
-        f"TEC Distribution - Last Data ({last_date.strftime('%Y-%m-%d %H:%M')})",
+        f"Распределение ПЭС - Последняя дата ({last_date.strftime('%Y-%m-%d %H:%M')})",
         '/home/fanat/work/forecast_of_ionosphere/tec_last_data.png'
     )
     plt.close(fig1)
@@ -785,7 +794,7 @@ def main():
         
         fig, ax = forecaster.create_tec_map(
             mean_forecast,
-            f"TEC Forecast - {days} Days ({forecast_date.strftime('%Y-%m-%d')})",
+            f"Прогноз ПЭС - {days} д. ({forecast_date.strftime('%Y-%m-%d')})",
             f'/home/fanat/work/forecast_of_ionosphere/tec_forecast_{days}d.png'
         )
         plt.close(fig)
